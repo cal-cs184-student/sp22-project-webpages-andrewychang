@@ -26,7 +26,7 @@
 <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
 <h1 align="middle">Project 2: Mesh Edit</h1>
 <h2 align="middle">Andrew Chang, CS184-SP22</h2>
-
+<h2 align="middle">Webpage: https://cal-cs184-student.github.io/sp22-project-webpages-andrewychang/proj2/index.html</h2>
 <br><br>
 
 <div>
@@ -201,7 +201,7 @@ when I tested out my edge flips, but I was able to quickly resolve this once I f
   In this section, I followed the recommended steps given in the spec to implement the subdivision algorithm, so I first calculated all the new vertex positions, then I split
   on all the pre-exisitng edges and flipped edges that are connected to an old vertex and a new vertex. This method smoothes out our meshes as it creates new triangles through
   the process of upsampling. Some issues I ran into while coding this section included realizing that I needed to set the isNew property for edges in my splitEdge function and 
-  to set my vertices correctly in flipEdges. I also ran into issues with float arithmetic and infinite looping while going through all the old, pre-exisiting edges for edge splits,
+  to set my vertices correctly in flipEdges and splitEdges. I also ran into issues with float arithmetic and infinite looping while going through all the old, pre-exisiting edges for edge splits,
   as it turned out that I was checking for old edges using the wrong condition.
 </p>
 <div align="middle">
@@ -232,6 +232,42 @@ when I tested out my edge flips, but I was able to quickly resolve this once I f
 <p>After subdivision, we can clearly see that sharp corners and edges are become much smoother due to upsampling. If we pre-split some edges before subdivision, we see that this 
   smoothness becomes more enhanced at the same iterations of subdivision. 
 </p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/p6-5.png" align="middle" width="400px"/>
+        <figcaption align="middle">1st Loop of Subdivision (cube)</figcaption>
+      </td>
+      <td>
+        <img src="images/p6-6.png" align="middle" width="400px"/>
+        <figcaption align="middle">2nd Loop of Subdivision (cube)</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/p6-7.png" align="middle" width="400px"/>
+        <figcaption align="middle">3rd Loop of Subdivision (cube)</figcaption>
+      </td>
+      <td>
+        <img src="images/p6-8.png" align="middle" width="400px"/>
+        <figcaption align="middle">4th Loop of Subdivision (cube)</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/p6-9.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube with symmetrical edges on each face</figcaption>
+      </td>
+      <td>
+        <img src="images/p6-10.png" align="middle" width="400px"/>
+        <figcaption align="middle">4 iterations of subdivision</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 <p>We can pre-process the cube with edge splits to make the resulting shape is symmetrical. To do this, I split on the edge that lies on each face of the cube, so that each
   face has two edges that cross each other instead of just one. The reason why our original cube does not subdivide symmetrically is because the edge on each face of the cube
   makes it asymmetrical. 
