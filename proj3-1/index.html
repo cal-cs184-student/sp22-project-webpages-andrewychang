@@ -1,7 +1,285 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 PathTracer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+<h1 align="middle">Project 3-1: PathTracer</h1>
+<h2 align="middle">Andrew Chang, Richard Wang, CS184-SP22</h2>
+<h2 align="middle">Webpage: https://cal-cs184-student.github.io/sp22-project-webpages-andrewychang/proj3-1/index.html</h2>
+<br><br>
+    <h2 align="middle">Overview</h2>
+    <h2 align="middle">Part 1: Ray Generation and Intersection</h2>
+
+
+        <p>In order to generate rays, we must convert a coordinate from image space to camera space and then finally world space. In order to do this, we perform a series of translations, scaling transformations, and camera space to world space matrix transformations. In our program, we first translated the image coordinate by a sampled x and y offset and scaled by the corresponding field of view angle 0.5 tan(hfov) and 0.5 tan (vfov). The image is placed in the xy plane at z = -1. This transformation converts our coordinate from image space to camera space. From there, we want to convert the coordinate from camera space, which we can accomplish by multiplying the resulting ray vector (x, y, -1) by the camera-to-world transformation matrix. 
+
+          The triangle intersection algorithm we implemented is based upon the well known triangle intersection algorithm: the  Möller-Trumbore intersection algorithm. The principle of 3D triangle intersection algorithms is to 1. determine if the point lies within the plane of the 3 vertices of the triangle and then 2. determine with either the line test or with barycentric coordinates whether the intersection of the ray and plane lies within the triangle. The Möller-Trumbore algorithm determines the barycentric coordinates of the ray-plane intersection in a compact, easy to compute matrix form as presented in lecture: https://cs184.eecs.berkeley.edu/sp22/lecture/9-22/ray-tracing
+        .</p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                  <td>
+                    <img src="images/p1-1.png" width="480px" />
+                    <figcaption align="middle">Normal shading of empty room</figcaption>
+                  <td>
+                  <td>
+                  <img src="images/p1-2.png" width="480px" />
+                  <figcaption align="middle">Normal shading of spheres</figcaption>
+                  <td>
+              </tr>
+            </table>
+        </div>
+
+    <h2 align="middle">Part 2: Bounding Volume Hierarchy</h2>
+    <p>
+    Our algorithm first checks if the number of primitives in this node would be less than max_leaf_size. If it is, this means the node we're currently on is a leaf node and we simpy assign the node's start and end correspondingly,
+    effectively establishing the base case of our recursion. If it's not a leaf node, our BVH is constructed by recursively splitting on the midpoint of the longest axis of the current node's bounding box. Thus, all primitives who's
+    bounding box's midpoint is less than or equal to the midpoint of the node's bounding box's longest axis would be in the left node, while the right node contains all the primitive's who's bounding box's midpoints are greater than the midpoint
+    of the node's bounding box's longest axis. We also address the case where sometimes the split would result in all primitives being placed on one side of the split point by splitting on the second longest axis in this case. If both
+    axis results in one side of the midpoint having all the primitives, we split on the last available axis (since our models are in 3D) and if this split once again cannot actually split the primitives, we simply change the max_leaf_size of the next
+    recursive call to be the all the primitives on one node (the side with all the primitives), and 0 for the other node, as it prevents infinite recursion by creating leaf nodes. We simply picked the midpoint of the longest axis because it's easy
+    to calculate. 
+  </p>
+    <div align="middle">
+        <table style="width=100%">
+          <tr>
+            <td>
+              <img src="images/p2-1.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of Lucy</figcaption>
+            </td>
+            <td>
+              <img src="images/p2-2.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of Max Planck</figcaption>
+            </td>
+          </tr>
+          <br>
+          <tr>
+            <td>
+              <img src="images/p2-3.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of Dragon</figcaption>
+            </td>
+            <td>
+              <img src="images/p2-4.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of Wall-e</figcaption>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <p>
+      For maxplanck, it took us around 179 seconds to render without BVH acceleration, and 0.6 seconds with BVH. For our cow rendering, it took us around 16 seconds to render without BVH and 0.5 seconds with. Clearly, we see that BVH speeds up our rendering
+      time by a significant amount. For more complex geometries like maxplanck, it sped up our rendering by 178 seconds, which is a 178x speed up! In addition, we can see that BVH provides such a massive speedup that it takes about the same time to render
+      the cow and maxplanck, even though maxplanck is a much more complex model geometry wise.
+    </p>
+      
+    <h2 align="middle">Part 3: Direct Illumination</h2>
+    <p>
+    In part 3 of this project we implemented direct lighting with uniform hemisphere sampling and direct lighting with importance sampling. Both of these model one-bounce illuminations; zero bounce illumination represents light that doesn't bounce off any 
+    object and comes directly from the light-source to the camera. In our project we implement inverse-light rays, which means we trace rays from camera to light source. First, we calculated the BSDF or Bidirectional Scattering Distribution Function f(win, wout) 
+    which represents the ratio of incoming light to outcoming light based on the incoming and outgoing directions. Then, the general formula for single bounce illumination that we used is based on Monte Carlo estimation, which is defined by the following formula:
+  </p> 
+    <div align="center">
+      <table style="width=100%">
+          <tr>
+              <td align="middle">
+              <img src="images/monte.png" width="480px" />
+          </tr>
+      </table>
+  </div>
+  <p>
+  These values will change between uniform hemisphere and importance sampling. For uniform sampling, p(w) = 1/2pi and we sample uniformly in all directions. Importance sampling is slightly different since we want to sample each light source in the scene if the 
+  light ray hits our hit location, and probability p(w) is not a uniform constant. 
+  </p>
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/p3-1.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with Uniform Hemipshere Sampling</figcaption>
+          </td>
+          <td>
+            <img src="images/p3-2.png" align="middle" width="480px"/>
+            <figcaption align="middle">Spheres with Uniform Hemipshere Sampling</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/p3-3.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with Importance Sampling Lights</figcaption>
+          </td>
+          <td>
+            <img src="images/p3-4.png" align="middle" width="480px"/>
+            <figcaption align="middle">Spheres with Importance Sampling Lights</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/p3-5.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 1 light ray, 1 sample per pixel</figcaption>
+          </td>
+          <td>
+            <img src="images/p3-6.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 4 light ray, 1 sample per pixel</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/p3-7.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 16 light ray, 1 sample per pixel</figcaption>
+          </td>
+          <td>
+            <img src="images/p3-8.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 32 light ray, 1 sample per pixel</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>
+    In uniform sampling, we can clearly see that there is a lot more noise compared to importance sampling. The crisper image from importance sampling is most likely due to the fact that it is only sampling form light sources in the scene, and thus would
+    reduce overall noise. However, this is only assuming that there are enough light rays to sample from. We see that when we reduce the light rays in importance sampling, the noise in the images increases by a significant amount.
+    </p>
+    <h2 align="middle">Part 4: Global Illumination</h2>
+    We implemented indirect lighting via a recursion of our at-least-one-bounce method with a maximum ray-depth/Russian Roulette stopping condition. In our first 3 sections we implemented light rays with single bounces, but now we want to model illumination with more 
+    than one bounce. Say we have a bounce at position i, we want to estimate the light bounce at position i+1 on the next object, which is where our recursive call comes in. Since we can't computationally model an infinite number of bounces, we can model the energy 
+    dissipation with Russian Roulette, and stop the recursion with a certain probability. For Russian Roulette, we have to remember to divide value by the probability used for Russian Roulette (specifically, the continuation probability). We also stopped recursive by 
+    tracking the maximum ray depth as a field and ending the recursion at some maximum number of ray bounces. 
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/p4-1.png" align="middle" width="480px"/>
+            <figcaption align="middle">Dragon with global illumination</figcaption>
+          </td>
+          <td>
+            <img src="images/p4-2.png" align="middle" width="480px"/>
+            <figcaption align="middle">Spheres with global illumination</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/p4-3.png" align="middle" width="480px"/>
+            <figcaption align="middle">Spheres with only direct illumination</figcaption>
+          </td>
+          <td>
+            <img src="images/p4-4.png" align="middle" width="480px"/>
+            <figcaption align="middle">Spheres with only indirect illumination</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/0.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with max ray depth of 0</figcaption>
+          </td>
+          <td>
+            <img src="images/1.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with max ray depth of 1</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/2.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with max ray depth of 2</figcaption>
+          </td>
+          <td>
+            <img src="images/3.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with max ray depth of 3</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/100.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with max ray depth of 100</figcaption>
+          </td>
+          <td>
+            <img src="images/s1.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 1 sample per pixel, 4 light rays</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/s2.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 2 samples per pixel, 4 light rays</figcaption>
+          </td>
+          <td>
+            <img src="images/s4.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 4 samples per pixel, 4 light rays</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/s8.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 8 samples per pixel, 4 light rays</figcaption>
+          </td>
+          <td>
+            <img src="images/s16.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 16 samples per pixel, 4 light rays</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/s64.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 64 samples per pixel, 4 light rays</figcaption>
+          </td>
+          <td>
+            <img src="images/s1024.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rabbit with 1024 samples per pixel, 4 light rays</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <h2 align="middle">Part 5: Adaptive Sampling</h2>
+    <p>
+    Our implementation of adaptive sampling was really straightforward as we just implemented it based on what the spec told us to do. We add each sample's illuminance and and illuminance squared to variables s1 and s2, and after a batch number of samples have been 
+    sampled, we find the pixel's convergence using the formula I = 1.96 * sd / square root of number of samples traced. If the convergence is less than or equal to some maxTolerance * mean of all the sample's illuminance, where maxTolerance = 0.05 by default, we
+    break out of our ray tracing algorithm for this pixel as it has converged.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+          <tr>
+            <td>
+              <img src="images/p5-1.png" width="480px" />
+              <figcaption align="middle">Bunny with adaptive sampling</figcaption>
+            <td>
+            <td>
+            <img src="images/p5-2.png" width="480px" />
+            <figcaption align="middle">Heat map of sample rate of bunny with adaptive sampling</figcaption>
+            <td>
+        </tr>
+      </table>
+    </div>
+</body>
 </html>
+
+
+
+
