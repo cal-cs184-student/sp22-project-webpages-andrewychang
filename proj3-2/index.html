@@ -1,7 +1,162 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 PathTracer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+<h1 align="middle">Project 3-2: PathTracer</h1>
+<h2 align="middle">Andrew Chang, Richard Wang, CS184-SP22</h2>
+<h2 align="middle">Webpage: https://cal-cs184-student.github.io/sp22-project-webpages-andrewychang/proj3-2/index.html</h2>
+<br><br>
+    <h2 align="middle">Overview</h2>
+    We specifically chose to finish p1 and p2 of this project, which required us to implement rendering of more complex materials like a mirror/glass and metallic/microfacet materials. We encountered some issues with part 1 because Richard's m1 macbooks couldn't run the program for some reason, so he had to
+    ssh into the hive to complete this section. This took more time because he wasn't as used to do debugging from the hive. As for part 2, Andrew did not really run into any issues as the implementation was relatively straightforward.
+    <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+
+
+        <p>Part 1 of this project featured the implementation of reflection and refraction of light upon surfaces. In order to implement these we implemented real physical laws that light obeys in order to model the properties of materials. Reflection obeys a very simple law: the angle of incidence is equal to the angle of reflectance. In order to implement this, we simply reflected the  incident vector across the normal of the surface in order to get the reflected light ray. Refraction is a bit more involved. When light passes between two non-opaque mediums, the angle of the light changes based on the material of each medium at the junction. The angles follow Snell’s law which is stated as: n1*sin(theta1) = n2(sin(theta2)), where n represents the index of refraction which represents the ration of the speed of light in a vacuum to the speed of light in said material. In cases where a solution to Snell’s equation is not possible, we have total internal reflection. Since we implemented our surface to be in the canonical frame we were able to exploit the use of spherical coordinates in order to make the calculations easier. 
+          Some surfaces, such as glass, exhibit both this behavior: reflection and refraction of light. Some light gets reflected and some light gets refracted, but the total energy must be conserved. In order to model this behavior, we utilized the Schlick approximation in order to estimate the ratio of reflection to refraction, which is given by the formula: R = Ro + (1 - Ro) * (1 - cos(theta))^5, where Ro = ((n1 - n2)/(n1 + n2))^2.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                  <td>
+                    <img src="images/0b.png" width="480px" />
+                    <figcaption align="middle">Spheres rendering with 0 max ray depth</figcaption>
+                  </td>
+                  <td>
+                  <img src="images/1b.png" width="480px" />
+                  <figcaption align="middle">Spheres rendering with 1 max ray depth</figcaption>
+                  </td>
+              </tr>
+              <br>
+          <tr>
+            <td>
+              <img src="images/2b.png" align="middle" width="480px"/>
+              <figcaption align="middle">Spheres rendering with 2 max ray depth</figcaption>
+            </td>
+            <td>
+              <img src="images/3b.png" align="middle" width="480px"/>
+              <figcaption align="middle">Spheres rendering with 3 max ray depth</figcaption>
+            </td>
+          </tr>
+          <br>
+          <tr>
+            <td>
+              <img src="images/4b.png" align="middle" width="480px"/>
+              <figcaption align="middle">Spheres rendering with 4 max ray depth</figcaption>
+            </td>
+            <td>
+              <img src="images/5b.png" align="middle" width="480px"/>
+              <figcaption align="middle">Spheres rendering with 5 max ray depth</figcaption>
+            </td>
+          </tr>
+          <br>
+          <tr>
+            <td>
+              <img src="images/100b.png" align="middle" width="480px"/>
+              <figcaption align="middle">Spheres rendering with 100 max ray depth</figcaption>
+            </td>
+          </tr>
+            </table>
+        </div>
+        <p>
+          We see that 0 bounce image simply renders the light source and 1 bounce image renders the walls of the Cornell box as we would expect from project 3-1. In addition, we see the reflection of the light source in the spheres with a mirror as a result of single bounce illumination. With two bounce illumination we see the reflection of the walls in the mirrored sphere. Three bounce illumination allows us to see light that gets refracted through the glass ball as light from the walls passes through the glass ball. Four and five bounce illumination lets us see the reflection of the refracted light coming from the glass ball in the mirrored ball. 100 bounce looks basically the same as 5 bounce, except that it has slightly brighter light reflections.
+        </p>
+
+    <h2 align="middle">Part 2: Microfacet Material</h2>
+    <p>
+  The implementation for part 2 was pretty straighforward as it was basically outlined for us in the spec. We first implemented the BRDF evaluation function using the fresnel term, shadowing-masking term, and the normal distribution function. We then
+  defined the normal distribution function using the Beckhmann distribution and the fresnel term using an approximation where we simply calculate the fresnel terms for R, G and B channels instead of every possible wavelength. Lastly, we implemented 
+  importance sampling by first sampling angles theta and phi using the inversion method, converting these two angles to a half vector h, then reflecting wo across h to get wi. We make sure that wi and wo are valid, and we also calculate the pdf by using the pdf distributions of theta and phi.
+  </p>
+    <div align="middle">
+        <table style="width=100%">
+          <tr>
+            <td>
+              <img src="images/005.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of gold dragon with alpha = 0.005</figcaption>
+            </td>
+            <td>
+              <img src="images/05.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of gold dragon with alpha = 0.05</figcaption>
+            </td>
+          </tr>
+          <br>
+          <tr>
+            <td>
+              <img src="images/25.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of gold dragon with alpha = 0.25</figcaption>
+            </td>
+            <td>
+              <img src="images/5.png" align="middle" width="480px"/>
+              <figcaption align="middle">Rendering of gold dragon with alpha = 0.5</figcaption>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <p>
+      When we increased our alpha value, we noticed that not only does the image become less noisy, the dragon also becomes less shiny. The dragon also becomes brighter as alpha increases. The images were all generated with a 128 samples per pixel and 1 sample per light with maximum 5 bounces.
+    </p>
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/cosbunny.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rendering of bunny with cosine hemisphere sampling</figcaption>
+          </td>
+          <td>
+            <img src="images/bunny.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rendering of bunny with importance sampling</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>
+      In the cosine hemisphere sampling case, we can see that our bunny is a lot darker, almost surrounded by a dark outline, and the image produced is also a lot more noisy (more white dots). This is most likely due to the fact that we weren't sampling the relevant sample rays in hemisphere
+      sampling compared to importance sampling.
+    </p>
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/mg.png" align="middle" width="480px"/>
+            <figcaption align="middle">Rendering of manganese dragon</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <p>
+      We made a manganese dragon, which has eta RGB values of 2.5066, 2.3900, 2.1700, and k RGB values of 3.5306, 3.3300, 3.0400. These values were found by using https://refractiveindex.info/.
+    </p>
+    <h2 align="middle">Partner Collaboration</h2>
+    <p>
+      We split up the work so that Richard did part 1 and Andrew did part 2. It worked really smoothly as we couldn't really meet in person due to our busy schedules, which made working on separate parts a lot easier than trying to work together remotely on the same sections. Through this project
+      we were able to learn how to implement more complex material renderings through the physical properties of said materials and some math. 
+    </p>
+</body>
 </html>
+
+
+
+
